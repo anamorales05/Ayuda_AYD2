@@ -1,0 +1,57 @@
+http:
+  port: 8080
+admin:
+  port: 9876
+  host: localhost
+apiEndpoints:
+  micro1:
+    host: '*'
+    paths: '/micro1*'
+    methods: ['POST','GET','PUT','DELETE','OPTIONS']
+  micro2:
+    host: '*'
+    paths: '/micro2*'
+    methods: ['POST','GET','PUT','DELETE','OPTIONS']
+serviceEndpoints:
+  httpMicro1:
+    url: 'http://localhost:3000'
+  httpMicro2:
+    url: 'http://localhost:4000'
+policies:
+  - basic-auth
+  - cors
+  - expression
+  - key-auth
+  - log
+  - oauth2
+  - proxy
+  - rate-limit
+pipelines:
+  micro1Pipeline:
+    apiEndpoint:
+      - micro1
+    policies:
+      - log:
+        - action:
+            message: '[micro1] ${req.method}'
+      - rate-limit: #&rate-limit
+        - action:
+           max: 10
+           windowMs: 30000 
+           message: Me dio ansiedad
+      - proxy:
+        - action:
+            serviceEndpoint: httpMicro1
+            changeOrigin: true
+  micro2Pipeline:
+    apiEndpoint:
+      - micro2
+    policies:
+      - rate-limit: #*rate-limit
+      - log:
+        - action:
+            message: '[micro2] ${req.method}'
+      - proxy:
+        - action:
+            serviceEndpoint: httpMicro2
+            changeOrigin: true
